@@ -1,11 +1,11 @@
 // consignment-service/proto/consignment/consignment.proto
 syntax = "proto3";
 
-package consignment;
+package go.micro.srv.consignment;
 
-service ConsignmentService {
-  rpc Create(Consignment) returns (Response) {}
-  rpc Get(GetRequest) returns (Response) {}
+service ShippingService {
+  rpc CreateConsignment(Consignment) returns (Response) {}
+  rpc GetConsignments(GetRequest) returns (Response) {}
 }
 
 message Consignment {

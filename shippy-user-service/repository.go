@@ -1,15 +1,15 @@
 package main
 
 import (
+	pb "github.com/CcccFz/shippy/shippy-user-service/proto/user"
 	"github.com/jinzhu/gorm"
-	pb "shippy/shippy-user-service/proto/auth"
 )
 
 type Repository interface {
 	GetAll() ([]*pb.User, error)
 	Get(id string) (*pb.User, error)
 	Create(user *pb.User) error
-	GetByEmail(email string) (*pb.User, error)
+	GetByEmailAndPassword(user *pb.User) (*pb.User, error)
 }
 
 type UserRepository struct {
@@ -33,10 +33,8 @@ func (repo *UserRepository) Get(id string) (*pb.User, error) {
 	return user, nil
 }
 
-func (repo *UserRepository) GetByEmail(email string) (*pb.User, error) {
-	user := &pb.User{}
-	if err := repo.db.Where("email = ?", email).
-		First(&user).Error; err != nil {
+func (repo *UserRepository) GetByEmailAndPassword(user *pb.User) (*pb.User, error) {
+	if err := repo.db.First(&user).Error; err != nil {
 		return nil, err
 	}
 	return user, nil

@@ -1,13 +1,13 @@
 package main
 
 import (
+	pb "github.com/CcccFz/shippy/shippy-vessel-service/proto/vessel"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	pb "shippy/shippy-vessel-service/proto/vessel"
 )
 
 const (
-	dbName           = "shippy"
+	dbName = "shippy"
 	vesselCollection = "vessels"
 )
 
@@ -16,6 +16,7 @@ type Repository interface {
 	Create(vessel *pb.Vessel) error
 	Close()
 }
+
 
 type VesselRepository struct {
 	session *mgo.Session
@@ -32,8 +33,8 @@ func (repo *VesselRepository) FindAvailable(spec *pb.Specification) (*pb.Vessel,
 	// capacity are greater than and equal to the given capacity and weight.
 	// We're also using the `One` function here as that's all we want.
 	err := repo.collection().Find(bson.M{
-		"capacity":  bson.M{"$gte": spec.Capacity},
-		"maxweight": bson.M{"$gte": spec.MaxWeight},
+		"capacity": bson.M{ "$gte": spec.Capacity },
+		"maxweight": bson.M{ "$gte": spec.MaxWeight },
 	}).One(&vessel)
 	if err != nil {
 		return nil, err

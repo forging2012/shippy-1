@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package auth;
+package go.micro.srv.user;
 
-service Auth {
+service UserService {
     rpc Create(User) returns (Response) {}
     rpc Get(User) returns (Response) {}
     rpc GetAll(Request) returns (Response) {}
@@ -16,7 +16,6 @@ message User {
     string company = 3;
     string email = 4;
     string password = 5;
-    string token = 6;
 }
 
 message Request {}
@@ -25,7 +24,6 @@ message Response {
     User user = 1;
     repeated User users = 2;
     repeated Error errors = 3;
-    Token token = 4;
 }
 
 message Token {

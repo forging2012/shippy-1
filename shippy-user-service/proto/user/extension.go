@@ -1,4 +1,4 @@
-package auth
+package go_micro_srv_user
 
 import (
 	"github.com/jinzhu/gorm"
@@ -6,9 +6,6 @@ import (
 )
 
 func (model *User) BeforeCreate(scope *gorm.Scope) error {
-	uuid_, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
+	uuid_, _ := uuid.NewV4()
 	return scope.SetColumn("Id", uuid_.String())
 }
