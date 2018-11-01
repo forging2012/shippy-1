@@ -25,7 +25,8 @@ func (s *service) GetRepo() Repository {
 // which is a create method, which takes a context and a request as an
 // argument, these are handled by the gRPC server.
 func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment, res *pb.Response) error {
-	defer s.GetRepo().Close()
+	repo := s.GetRepo()
+	defer repo.Close()
 
 	// Here we call a client instance of our vessel service with our consignment weight,
 	// and the amount of containers as the capacity value
@@ -43,7 +44,7 @@ func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment, re
 	req.VesselId = vesselResponse.Vessel.Id
 
 	// Save our consignment
-	err = s.GetRepo().Create(req)
+	err = repo.Create(req)
 	if err != nil {
 		return err
 	}
@@ -56,8 +57,10 @@ func (s *service) CreateConsignment(ctx context.Context, req *pb.Consignment, re
 }
 
 func (s *service) GetConsignments(ctx context.Context, req *pb.GetRequest, res *pb.Response) error {
-	defer s.GetRepo().Close()
-	consignments, err := s.GetRepo().GetAll()
+	repo := s.GetRepo()
+	defer repo.Close()
+
+	consignments, err := repo.GetAll()
 	if err != nil {
 		return err
 	}
