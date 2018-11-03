@@ -1,19 +1,15 @@
-FROM golang:1.9.0 as builder
-
-WORKDIR /go/src/github.com/EwanValentine/shippy/consignment-service
-
-COPY . .
-
-RUN go get -u github.com/golang/dep/cmd/dep
-RUN dep init && dep ensure
-RUN CGO_ENABLED=0 GOOS=linux go build  -o consignment-service -a -installsuffix cgo main.go repository.go handler.go datastore.go
-
+# 若运行环境是 Linux 则需把 alpine 换成 debian
+# 使用最新版 alpine 作为基础镜像
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
-
+# 在容器的根目录下创建 app 目录
 RUN mkdir /app
-WORKDIR /app
-COPY --from=builder /go/src/github.com/EwanValentine/shippy/consignment-service/consignment-service .
 
+# 将工作目录切换到 /app 下
+WORKDIR /app
+
+# 将微服务的服务端可运行文件拷贝到 /app 下
+ADD consignment-service /app/consignment-service
+
+# 运行服务端
 CMD ["./consignment-service"]

@@ -1,59 +1,54 @@
 package main
 
 import (
-	"log"
-	"os"
-
 	pb "github.com/CcccFz/shippy/shippy-user-service/proto/user"
 	microclient "github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"golang.org/x/net/context"
+	"log"
+	"os"
 )
 
 func main() {
 
 	cmd.Init()
-
-	// Create new greeter client
+	// 创建 user-service 微服务的客户端
 	client := pb.NewUserServiceClient("go.micro.srv.user", microclient.DefaultClient)
 
-	name := "CcccFz"
-	email := "ccccfz@163.com"
-	password := "Qwe123Lxf1218"
-	company := "Golden Ridge"
+	// 暂时将用户信息写死在代码中
+	name := "Ewan Valentine"
+	email := "ewan.valentine89@gmail.com"
+	password := "test123"
+	company := "BBC"
 
-	log.Println(name, email, password)
-
-	r, err := client.Create(context.TODO(), &pb.User{
+	resp, err := client.Create(context.TODO(), &pb.User{
 		Name:     name,
 		Email:    email,
 		Password: password,
 		Company:  company,
 	})
 	if err != nil {
-		log.Fatalf("Could not create: %v", err)
+		log.Fatalf("call Create error: %v", err)
 	}
-	log.Printf("Created: %v", r.User)
+	log.Println("created: ", resp.User.Id)
 
-	getAll, err := client.GetAll(context.Background(), &pb.Request{})
+	allResp, err := client.GetAll(context.Background(), &pb.Request{})
 	if err != nil {
-		log.Fatalf("Could not list users: %v", err)
+		log.Fatalf("call GetAll error: %v", err)
 	}
-	for _, v := range getAll.Users {
-		log.Println(v)
+	for i, u := range allResp.Users {
+		log.Printf("user_%d: %v\n", i, u)
 	}
 
-	authResponse, err := client.Auth(context.TODO(), &pb.User{
+	authResp, err := client.Auth(context.TODO(), &pb.User{
 		Email:    email,
 		Password: password,
 	})
-
 	if err != nil {
-		log.Fatalf("Could not authenticate user: %s error: %v\n", email, err)
+		log.Fatalf("auth failed: %v", err)
 	}
+	log.Println("token: ", authResp.Token)
 
-	log.Printf("Your access token is: %s \n", authResponse.Token)
-
-	// let's just exit because
+	// 直接退出即可
 	os.Exit(0)
 }

@@ -1,58 +1,54 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	pb "github.com/CcccFz/shippy/shippy-vessel-service/proto/vessel"
 	"github.com/micro/go-micro"
+	"log"
 	"os"
 )
 
 const (
-	defaultHost = "localhost:27017"
+	DefaultHost = "localhost:27017"
 )
-
-func createDummyData(repo Repository) {
-	defer repo.Close()
-	vessels := []*pb.Vessel{
-		{Id: "vessel001", Name: "Kane's Salty Secret", MaxWeight: 200000, Capacity: 500},
-	}
-	for _, v := range vessels {
-		repo.Create(v)
-	}
-}
 
 func main() {
 
 	host := os.Getenv("DB_HOST")
-
 	if host == "" {
-		host = defaultHost
+		host = DefaultHost
 	}
-
 	session, err := CreateSession(host)
 	defer session.Close()
-
 	if err != nil {
-		log.Fatalf("Error connecting to datastore: %v", err)
+		log.Fatalf("create session error: %v\n", err)
 	}
 
+
+	// 停留在港口的货船，先写死
 	repo := &VesselRepository{session.Copy()}
-
-	createDummyData(repo)
-
-	srv := micro.NewService(
+	CreateDummyData(repo)
+	server := micro.NewService(
 		micro.Name("go.micro.srv.vessel"),
 		micro.Version("latest"),
 	)
+	server.Init()
 
-	srv.Init()
+	// 将实现服务端的 API 注册到服务端
+	pb.RegisterVesselServiceHandler(server.Server(), &handler{session})
 
-	// Register our implementation with
-	pb.RegisterVesselServiceHandler(srv.Server(), &service{session})
+	if err := server.Run(); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+}
 
-	if err := srv.Run(); err != nil {
-		fmt.Println(err)
+func CreateDummyData(repo Repository)  {
+	defer repo.Close()
+	vessels := []*pb.Vessel{
+		{Id: "vessel001", Name: "Boaty McBoatface 1", MaxWeight: 200000, Capacity: 500},
+		{Id: "vessel002", Name: "Boaty McBoatface 2", MaxWeight: 210000, Capacity: 600},
+		{Id: "vessel003", Name: "Boaty McBoatface 3", MaxWeight: 220000, Capacity: 700},
+	}
+	for _, v := range vessels {
+		repo.Create(v)
 	}
 }

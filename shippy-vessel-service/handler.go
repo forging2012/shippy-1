@@ -1,42 +1,36 @@
 package main
 
 import (
+	"context"
 	pb "github.com/CcccFz/shippy/shippy-vessel-service/proto/vessel"
-	"golang.org/x/net/context"
 	"gopkg.in/mgo.v2"
 )
 
-// Our gRPC service handler
-type service struct {
+// 实现微服务的服务端
+type handler struct {
 	session *mgo.Session
 }
 
-func (s *service) GetRepo() Repository {
-	return &VesselRepository{s.session.Clone()}
+func (h *handler) GetRepo() Repository {
+	return &VesselRepository{h.session.Clone()}
 }
 
-func (s *service) FindAvailable(ctx context.Context, req *pb.Specification, res *pb.Response) error {
-	repo := s.GetRepo()
-	defer repo.Close()
-
-	// Find the next available vessel
-	vessel, err := repo.FindAvailable(req)
+func (h *handler) FindAvailable(ctx context.Context, req *pb.Specification, resp *pb.Response) error {
+	defer h.GetRepo().Close()
+	v, err := h.GetRepo().FindAvailable(req)
 	if err != nil {
 		return err
 	}
-
-	// Set the vessel as part of the response message type
-	res.Vessel = vessel
+	resp.Vessel = v
 	return nil
 }
 
-func (s *service) Create(ctx context.Context, req *pb.Vessel, res *pb.Response) error {
-	repo := s.GetRepo()
-	defer repo.Close()
-	if err := repo.Create(req); err != nil {
+func (h *handler) Create(ctx context.Context, req *pb.Vessel, resp *pb.Response) error {
+	defer h.GetRepo().Close()
+	if err := h.GetRepo().Create(req); err != nil {
 		return err
 	}
-	res.Vessel = req
-	res.Created = true
+	resp.Vessel = req
+	resp.Created = true
 	return nil
 }

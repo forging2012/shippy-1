@@ -7,18 +7,16 @@ import (
 )
 
 func CreateConnection() (*gorm.DB, error) {
-
-	// Get database details from environment variables
 	host := "127.0.0.1"
 	user := "postgres"
-	DBName := "shippy"
 	password := "123qwe"
+	dbName := "shippy"
 
 	return gorm.Open(
 		"postgres",
 		fmt.Sprintf(
 			"host=%s user=%s dbname=%s sslmode=disable password=%s",
-			host, user, DBName, password,
+			host, user, dbName, password,
 		),
 	)
 }

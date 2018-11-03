@@ -1,21 +1,10 @@
-FROM golang:1.9.0 as builder
-
-WORKDIR /go/src/github.com/EwanValentine/shippy/consignment-cli
-
-COPY . .
-
-RUN go get -u github.com/golang/dep/cmd/dep
-RUN dep init && dep ensure
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .
-
-
 FROM alpine:latest
-
-RUN apk --no-cache add ca-certificates
-
-RUN mkdir /app
+RUN mkdir -p /app
 WORKDIR /app
-COPY consignment.json /app/consignment.json
-COPY --from=builder /go/src/github.com/EwanValentine/shippy/consignment-cli/consignment-cli .
 
+# 将当前目录下的货物信息文件 consignment.json 拷贝到 /app 目录下
+ADD consignment.json /app/consignment.json
+ADD consignment-cli /app/consignment-cli
+
+ENTRYPOINT ["./consignment-cli"]
 CMD ["./consignment-cli"]

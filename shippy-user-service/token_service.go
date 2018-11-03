@@ -6,63 +6,56 @@ import (
 	"time"
 )
 
-var (
-	// Define a secure key string used
-	// as a salt when hashing our tokens.
-	// Please make your own way more secure than this,
-	// use a randomly generated md5 hash or something.
-	key = []byte("mySuperSecretKeyLol")
-)
-
-// CustomClaims is our custom metadata, which will be hashed
-// and sent as the second segment in our JWT
-type CustomClaims struct {
-	User *pb.User
-	jwt.StandardClaims
+type Authable interface {
+	Decode(tokenStr string) (*CustomClaims, error)
+	Encode(user *pb.User) (string, error)
 }
 
-type Authable interface {
-	Decode(token string) (*CustomClaims, error)
-	Encode(user *pb.User) (string, error)
+// 定义加盐哈希密码时所用的盐
+// 要保证其生成和保存都足够安全
+// 比如使用 md5 来生成
+var privateKey = []byte("`xs#a_1-!")
+
+// 自定义的 metadata
+// 在加密后作为 JWT 的第二部分返回给客户端
+type CustomClaims struct {
+	User *pb.User
+	// 使用标准的 payload
+	jwt.StandardClaims
 }
 
 type TokenService struct {
 	repo Repository
 }
 
-// Decode a token string into a token object
-func (srv *TokenService) Decode(tokenString string) (*CustomClaims, error) {
-
-	// Parse the token
-	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return key, nil
+//
+// 将 JWT 字符串解密为 CustomClaims 对象
+//
+func (srv *TokenService) Decode(tokenStr string) (*CustomClaims, error) {
+	t, err := jwt.ParseWithClaims(tokenStr, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return privateKey, nil
 	})
-
-	// Validate the token and return the custom claims
-	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+	// 解密转换类型并返回
+	if claims, ok := t.Claims.(*CustomClaims); ok && t.Valid {
 		return claims, nil
 	} else {
 		return nil, err
 	}
 }
 
-// Encode a claim into a JWT
+//
+// 将 User 用户信息加密为 JWT 字符串
+//
 func (srv *TokenService) Encode(user *pb.User) (string, error) {
-
-	expireToken := time.Now().Add(time.Hour * 72).Unix()
-
-	// Create the Claims
+	// 三天后过期
+	expireTime := time.Now().Add(time.Hour * 24 * 3).Unix()
 	claims := CustomClaims{
 		user,
 		jwt.StandardClaims{
-			ExpiresAt: expireToken,
-			Issuer:    "go.micro.srv.user",
+			Issuer:    "go.micro.srv.user", // 签发者
+			ExpiresAt: expireTime,
 		},
 	}
-
-	// Create token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign token and return
-	return token.SignedString(key)
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return jwtToken.SignedString(privateKey)
 }

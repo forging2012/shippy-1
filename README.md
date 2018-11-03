@@ -1,3 +1,5 @@
+Micro自带API网管启动方式： `micro --registry=mdns api --handler=rpc --address=:8080 --namespace=shipy`
+
 作者: [Ewan Valentine](https://twitter.com/Ewan_Valentine)
 原文：[ewanvalentine.io](https://ewanvalentine.io/tag/go/)
 作者Github: [EwanValentine](https://github.com/EwanValentine)

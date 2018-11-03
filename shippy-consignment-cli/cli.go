@@ -1,62 +1,73 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	pb "github.com/CcccFz/shippy/shippy-consignment-service/proto/consignment"
 	microclient "github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/cmd"
 	"github.com/micro/go-micro/metadata"
-	"golang.org/x/net/context"
 	"io/ioutil"
 	"log"
 )
 
 const (
-	defaultFilename = "shippy-consignment-cli/consignment.json"
+	DefaultInfoFile = "shippy-consignment-cli/consignment.json"
 )
 
-func parseFile(file string) (*pb.Consignment, error) {
-	var consignment *pb.Consignment
-	data, err := ioutil.ReadFile(file)
+// 读取 consignment.json 中记录的货物信息
+func parseFile(fileName string) (*pb.Consignment, error) {
+	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(data, &consignment)
-	return consignment, err
+	var consignment *pb.Consignment
+	err = json.Unmarshal(data, &consignment)
+	if err != nil {
+		return nil, errors.New("consignment.json file content error")
+	}
+	return consignment, nil
 }
 
 func main() {
 
 	cmd.Init()
 
-	// Create new greeter client
+	// 创建微服务的客户端，简化了手动 Dial 连接服务端的步骤
 	client := pb.NewShippingServiceClient("go.micro.srv.consignment", microclient.DefaultClient)
 
-	// Contact the server and print out its response.
-	file := defaultFilename
-	token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VyIjp7ImlkIjoiZmNlMmU0OGYtMTA0ZS00ODkxLWE4YzMtOWYxNGVkYjBhMzEwIiwibmFtZSI6IkNjY2NGeiIsImNvbXBhbnkiOiJHb2xkZW4gUmlkZ2UiLCJlbWFpbCI6ImNjY2NmekAxNjMuY29tIiwicGFzc3dvcmQiOiIkMmEkMTAkcC9LTXhVbG11NmU0aW5odU84TlFCdWgxdTVNLmp4Llo0OWNCODlPRWxWUmhOZUxtL1F3b1cifSwiZXhwIjoxNTAwMCwiaXNzIjoiZ28ubWljcm8uc3J2LnVzZXIifQ.Zn0uicdc4HMM0otfNKSKCcpJsvL3kJC4viEyRDFF2hY"
+	// 在命令行中指定新的货物信息 json 件
 
-	consignment, err := parseFile(file)
+	infoFile := DefaultInfoFile
+	token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VyIjp7ImlkIjoiZGQ3NTI1ZWEtOWM1Yy00ODcwLWI1ZDgtMmY3MzNiYWI4OGVhIiwibmFtZSI6IkV3YW4gVmFsZW50aW5lIiwiY29tcGFueSI6IkJCQyIsImVtYWlsIjoiZXdhbi52YWxlbnRpbmU4OUBnbWFpbC5jb20iLCJwYXNzd29yZCI6IiQyYSQxMCR5SHBjSk9rR3NGcTRjYmdUODV2WHQuLi5YZ1A1ZnZBR0VXR3l6UzB5TXdBUU9KdmFiVUVSVyJ9LCJleHAiOjE1NDE0ODY3NjcsImlzcyI6ImdvLm1pY3JvLnNydi51c2VyIn0.JCCsG5TQQ1FOQTnGHAIevlrQnsWwTeUjVvKn2LZdTns"
 
+	// 解析货物信息
+	consignment, err := parseFile(infoFile)
 	if err != nil {
-		log.Fatalf("Could not parse file: %v", err)
+		log.Fatalf("parse info file error: %v", err)
 	}
 
-	ctx := metadata.NewContext(context.Background(), map[string]string{
+	// 创建带有用户 token 的 context
+	// consignment-service 服务端将从中取出 token，解密取出用户身份
+	tokenContext := metadata.NewContext(context.Background(), map[string]string{
 		"token": token,
 	})
 
-	r, err := client.CreateConsignment(ctx, consignment)
+	// 调用 RPC
+	// 将货物存储到指定用户的仓库里
+	resp, err := client.CreateConsignment(tokenContext, consignment)
 	if err != nil {
-		log.Fatalf("Could not create: %v", err)
+		log.Fatalf("create consignment error: %v", err)
 	}
-	log.Printf("Created: %t", r.Created)
+	log.Printf("created: %t", resp.Created)
 
-	getAll, err := client.GetConsignments(ctx, &pb.GetRequest{})
+	// 列出目前所有托运的货物
+	resp, err = client.GetConsignments(tokenContext, &pb.GetRequest{})
 	if err != nil {
-		log.Fatalf("Could not list consignments: %v", err)
+		log.Fatalf("failed to list consignments: %v", err)
 	}
-	for _, v := range getAll.Consignments {
-		log.Println(v)
+	for i, c := range resp.Consignments {
+		log.Printf("consignment_%d: %v\n", i, c)
 	}
 }

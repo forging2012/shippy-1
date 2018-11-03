@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	dbName = "shippy"
-	consignmentCollection = "consignments"
+	DbName        = "shippy"
+	ConCollection = "consignments"
 )
 
 type Repository interface {
@@ -20,35 +20,35 @@ type ConsignmentRepository struct {
 	session *mgo.Session
 }
 
-// Create a new consignment
-func (repo *ConsignmentRepository) Create(consignment *pb.Consignment) error {
-	return repo.collection().Insert(consignment)
+// 接口实现
+func (repo *ConsignmentRepository) Create(c *pb.Consignment) error {
+	return repo.collection().Insert(c)
 }
 
-// GetAll consignments
+// 获取全部数据
 func (repo *ConsignmentRepository) GetAll() ([]*pb.Consignment, error) {
-	var consignments []*pb.Consignment
-	// Find normally takes a query, but as we want everything, we can nil this.
-	// We then bind our consignments variable by passing it as an argument to .All().
-	// That sets consignments to the result of the find query.
-	// There's also a `One()` function for single results.
-	err := repo.collection().Find(nil).All(&consignments)
-	return consignments, err
+	var cons []*pb.Consignment
+	// Find() 一般用来执行查询，如果想执行 select * 则直接传入 nil 即可
+	// 通过 .All() 将查询结果绑定到 cons 变量上
+	// 对应的 .One() 则只取第一行记录
+	err := repo.collection().Find(nil).All(&cons)
+	return cons, err
 }
 
-// Close closes the database session after each query has ran.
-// Mgo creates a 'master' session on start-up, it's then good practice
-// to clone a new session for each request that's made. This means that
-// each request has its own database session. This is safer and more efficient,
-// as under the hood each session has its own database socket and error handling.
-// Using one main database socket means requests having to wait for that session.
-// I.e this approach avoids locking and allows for requests to be processed concurrently. Nice!
-// But... it does mean we need to ensure each session is closed on completion. Otherwise
-// you'll likely build up loads of dud connections and hit a connection limit. Not nice!
+// 关闭连接
 func (repo *ConsignmentRepository) Close() {
+	// Close() 会在每次查询结束的时候关闭会话
+	// Mgo 会在启动的时候生成一个 "主" 会话
+	// 你可以使用 Copy() 直接从主会话复制出新会话来执行，即每个查询都会有自己的数据库会话
+	// 同时每个会话都有自己连接到数据库的 socket 及错误处理，这么做既安全又高效
+	// 如果只使用一个连接到数据库的主 socket 来执行查询，那很多请求处理都会阻塞
+	// Mgo 因此能在不使用锁的情况下完美处理并发请求
+	// 不过弊端就是，每次查询结束之后，必须确保数据库会话要手动 Close
+	// 否则将建立过多无用的连接，白白浪费数据库资源
 	repo.session.Close()
 }
 
+// 返回所有货物信息
 func (repo *ConsignmentRepository) collection() *mgo.Collection {
-	return repo.session.DB(dbName).C(consignmentCollection)
+	return repo.session.DB(DbName).C(ConCollection)
 }

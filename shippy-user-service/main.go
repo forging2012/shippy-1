@@ -1,52 +1,45 @@
 package main
 
 import (
-	"fmt"
 	pb "github.com/CcccFz/shippy/shippy-user-service/proto/user"
 	"github.com/micro/go-micro"
-	_ "github.com/micro/go-plugins/registry/mdns"
 	"log"
 )
 
 func main() {
-
-	// Creates a database connection and handles
-	// closing it again before exit.
+	// 连接到数据库
 	db, err := CreateConnection()
 	defer db.Close()
 
 	if err != nil {
-		log.Fatalf("Could not connect to DB: %v", err)
+		log.Fatalf("connect error: %v\n", err)
 	}
-
-	// Automatically migrates the user struct
-	// into database columns/types etc. This will
-	// check for changes and migrate them each time
-	// this service is restarted.
-	db.AutoMigrate(&pb.User{})
 
 	repo := &UserRepository{db}
 
-	tokenService := &TokenService{repo}
+	// 自动检查 User 结构是否变化
+	db.AutoMigrate(&pb.User{})
 
-	// Create a new service. Optionally include some options here.
+	// 作者使用了新仓库 shippy-user-service
+	// 但 auth.proto 和 user.proto 定义的内容是一致的
+	// 修改 shippy.auth 为 go.micro.srv.user
+	// 注意 API 调用参数也需对应修改
 	srv := micro.NewService(
-
-		// This name must match the package name given in your protobuf definition
 		micro.Name("go.micro.srv.user"),
 		micro.Version("latest"),
 	)
 
-	// Init will parse the command line flags.
 	srv.Init()
 
-	publisher := micro.NewPublisher("user.created", srv.Client())
+	// 获取 broker 实例
+	// pubSub := s.Server().Options().Broker
+	publisher := micro.NewPublisher(topic, srv.Client())
 
-	// Register handler
-	pb.RegisterUserServiceHandler(srv.Server(), &service{repo, tokenService, publisher})
+	t := TokenService{repo}
+	pb.RegisterUserServiceHandler(srv.Server(), &handler{repo, &t, publisher})
 
-	// Run the server
 	if err := srv.Run(); err != nil {
-		fmt.Println(err)
+		log.Fatalf("user service error: %v\n", err)
 	}
+
 }

@@ -1,17 +1,13 @@
 package main
 
-import (
-	"gopkg.in/mgo.v2"
-)
+import "gopkg.in/mgo.v2"
 
-// CreateSession creates the main session to our mongodb instance
+// 创建与 MongoDB 交互的主回话
 func CreateSession(host string) (*mgo.Session, error) {
-	session, err := mgo.Dial(host)
+	s, err := mgo.Dial(host)
 	if err != nil {
 		return nil, err
 	}
-
-	session.SetMode(mgo.Monotonic, true)
-
-	return session, nil
+	s.SetMode(mgo.Monotonic, true)
+	return s, nil
 }
