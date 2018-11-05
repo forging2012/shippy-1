@@ -1,3 +1,11 @@
+consignment-service（货运服务）  
+user-service（用户服务）   
+vessel-service（货船服务）  
+email-service（通知服务）  
+shippy-ui（界面）  
+
+
+
 go-micro自带API网关启动： `micro --registry=mdns api --handler=rpc --address=:8080 --namespace=shipy`  
 
 
